@@ -687,7 +687,7 @@ git commit -m "feat: add local search helpers"
 - Create: `src/aiPrompts.js`
 - Create: `tests/aiClient.test.js`
 
-- [ ] **Step 1: Write AI client tests**
+- [x] **Step 1: Write AI client tests**
 
 Create `tests/aiClient.test.js`:
 
@@ -737,13 +737,13 @@ describe('AI client', () => {
 });
 ```
 
-- [ ] **Step 2: Run failing AI tests**
+- [x] **Step 2: Run failing AI tests**
 
 Run: `npm test -- tests/aiClient.test.js`
 
 Expected: FAIL because `src/aiClient.js` does not exist.
 
-- [ ] **Step 3: Implement AI client**
+- [x] **Step 3: Implement AI client**
 
 Create `src/aiClient.js`:
 
@@ -795,7 +795,7 @@ export async function callJsonModel({ config, messages, fetchImpl = fetch }) {
 }
 ```
 
-- [ ] **Step 4: Implement prompt builders**
+- [x] **Step 4: Implement prompt builders**
 
 Create `src/aiPrompts.js`:
 
@@ -878,13 +878,13 @@ export function buildRecommendationMessages({ text, candidates }) {
 }
 ```
 
-- [ ] **Step 5: Run AI tests**
+- [x] **Step 5: Run AI tests**
 
 Run: `npm test -- tests/aiClient.test.js`
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit AI client**
+- [x] **Step 6: Commit AI client**
 
 ```bash
 git add src/aiClient.js src/aiPrompts.js tests/aiClient.test.js
