@@ -6,7 +6,7 @@
 
 **Architecture:** A small Node.js 20 + Express service owns all backend APIs, static admin pages, AI-provider calls, and SQLite persistence under a mounted `/app/data` directory. iPhone Shortcuts call JSON APIs over the home LAN using `X-Storage-Token`; the app retrieves local history first and uses an OpenAI-compatible AI API only for analysis and summarization.
 
-**Tech Stack:** Node.js 20, Express, better-sqlite3, Vitest, Supertest, native HTML/CSS/JS, Docker Compose, OpenAI-compatible chat completion API.
+**Tech Stack:** Node.js 24, Express, built-in `node:sqlite`, Vitest, Supertest, native HTML/CSS/JS, Docker Compose, OpenAI-compatible chat completion API.
 
 ---
 
@@ -14,7 +14,7 @@
 
 - `package.json`: npm scripts and dependencies.
 - `src/config.js`: read and validate environment settings.
-- `src/db.js`: SQLite connection, migrations, and row mapping helpers.
+- `src/db.js`: built-in SQLite connection, migrations, and row mapping helpers.
 - `src/search.js`: local keyword retrieval and placement-candidate ranking.
 - `src/aiClient.js`: OpenAI-compatible API adapter and JSON parsing helpers.
 - `src/aiPrompts.js`: prompt builders for analyze, search summary, and location recommendation.
@@ -60,7 +60,6 @@ Create `package.json`:
     "test:watch": "vitest"
   },
   "dependencies": {
-    "better-sqlite3": "^11.9.1",
     "express": "^4.21.2",
     "nanoid": "^5.1.5"
   },
@@ -189,7 +188,7 @@ git commit -m "feat: scaffold storage assistant app"
 - Create: `tests/db.test.js`
 - Modify: `src/server.js`
 
-- [ ] **Step 1: Write database tests**
+- [x] **Step 1: Write database tests**
 
 Create `tests/db.test.js`:
 
@@ -273,18 +272,18 @@ describe('database', () => {
 });
 ```
 
-- [ ] **Step 2: Run failing database tests**
+- [x] **Step 2: Run failing database tests**
 
 Run: `npm test -- tests/db.test.js`
 
 Expected: FAIL because `src/db.js` does not exist.
 
-- [ ] **Step 3: Implement database module**
+- [x] **Step 3: Implement database module**
 
 Create `src/db.js`:
 
 ```js
-import Database from 'better-sqlite3';
+import { DatabaseSync } from 'node:sqlite';
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { nanoid } from 'nanoid';
@@ -337,8 +336,8 @@ function mapDraft(row) {
 
 export function createDatabase({ dataDir }) {
   mkdirSync(dataDir, { recursive: true });
-  const sqlite = new Database(join(dataDir, 'storage.db'));
-  sqlite.pragma('journal_mode = WAL');
+  const sqlite = new DatabaseSync(join(dataDir, 'storage.db'));
+  sqlite.exec('PRAGMA journal_mode = WAL');
   sqlite.exec(`
     CREATE TABLE IF NOT EXISTS items (
       id TEXT PRIMARY KEY,
@@ -502,13 +501,13 @@ export function createDatabase({ dataDir }) {
 }
 ```
 
-- [ ] **Step 4: Run database tests**
+- [x] **Step 4: Run database tests**
 
-Run: `npm test -- tests/db.test.js`
+Run: `pnpm test -- tests/db.test.js`
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit database layer**
+- [x] **Step 5: Commit database layer**
 
 ```bash
 git add src/db.js tests/db.test.js
