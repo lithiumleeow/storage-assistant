@@ -23,6 +23,16 @@
         <input id="search" type="search" placeholder="螺丝、充电线、修椅子用的东西">
       </section>
 
+      <form id="addForm" class="panel add-form">
+        <label for="itemName">添加记忆</label>
+        <input id="itemName" name="displayName" required placeholder="物品名称，比如 M3 螺丝">
+        <input id="itemLocation" name="location" required placeholder="位置，比如 卧室衣柜右边第三个抽屉">
+        <input id="itemTags" name="tags" placeholder="标签，用逗号分隔，比如 螺丝,五金,M3">
+        <textarea id="itemDescription" name="description" rows="2" placeholder="备注，可不填"></textarea>
+        <button type="submit">保存记忆</button>
+        <p id="addStatus" class="meta"></p>
+      </form>
+
       <section id="items" class="items"></section>
     </main>
     <script src="/admin.js"></script>

@@ -107,6 +107,20 @@ describe('API routes', () => {
     expect(list.body.items[0].location).toBe('书桌抽屉');
   });
 
+  it('creates manual item records from admin input', async () => {
+    const res = await authed(request(app).post('/api/items')).send({
+      displayName: '备用钥匙',
+      location: '玄关柜左边小盒子',
+      tags: ['钥匙', '备用'],
+      description: '家门备用钥匙'
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.displayName).toBe('备用钥匙');
+    expect(res.body.location).toBe('玄关柜左边小盒子');
+    expect(res.body.tags).toEqual(['钥匙', '备用']);
+  });
+
   it('exports CSV records', async () => {
     db.createItem({
       displayName: 'Battery',

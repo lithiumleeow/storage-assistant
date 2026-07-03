@@ -99,6 +99,30 @@ export function createRoutes({ config, db, ai }) {
     res.json({ items: db.listItems({ query: req.query.q || '' }) });
   });
 
+  router.post('/items', (req, res, next) => {
+    try {
+      const displayName = requireText(req.body.displayName, 'displayName');
+      const location = requireText(req.body.location, 'location');
+      const item = db.createItem({
+        displayName,
+        rawText: req.body.rawText || `${displayName} ${location}`,
+        description: req.body.description || '',
+        category: req.body.category || 'manual',
+        tags: Array.isArray(req.body.tags) ? req.body.tags : [],
+        useContext: req.body.useContext || '',
+        relatedItems: Array.isArray(req.body.relatedItems) ? req.body.relatedItems : [],
+        location,
+        zone: req.body.zone || '',
+        placementReason: req.body.placementReason || 'Manual admin entry',
+        confidence: Number(req.body.confidence || 1),
+        photoPaths: Array.isArray(req.body.photoPaths) ? req.body.photoPaths : []
+      });
+      res.json(item);
+    } catch (err) {
+      next(err);
+    }
+  });
+
   router.get('/items/:id', (req, res) => {
     const item = db.getItem(req.params.id);
     if (!item) {

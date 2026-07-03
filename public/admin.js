@@ -2,6 +2,8 @@ const tokenInput = document.querySelector('#token');
 const searchInput = document.querySelector('#search');
 const itemsEl = document.querySelector('#items');
 const exportLink = document.querySelector('#exportLink');
+const addForm = document.querySelector('#addForm');
+const addStatus = document.querySelector('#addStatus');
 
 tokenInput.value = localStorage.getItem('storage-token') || '';
 
@@ -68,6 +70,33 @@ tokenInput.addEventListener('change', loadItems);
 searchInput.addEventListener('input', () => {
   clearTimeout(window.searchTimer);
   window.searchTimer = setTimeout(loadItems, 200);
+});
+
+addForm.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  addStatus.textContent = '保存中...';
+  const form = new FormData(addForm);
+  const tags = String(form.get('tags') || '')
+    .split(/[,，]/)
+    .map((tag) => tag.trim())
+    .filter(Boolean);
+  const res = await fetch('/api/items', {
+    method: 'POST',
+    headers: headers(),
+    body: JSON.stringify({
+      displayName: form.get('displayName'),
+      location: form.get('location'),
+      description: form.get('description'),
+      tags
+    })
+  });
+  if (!res.ok) {
+    addStatus.textContent = '保存失败，请检查访问令牌和必填项。';
+    return;
+  }
+  addForm.reset();
+  addStatus.textContent = '已保存。';
+  loadItems();
 });
 
 loadItems();
