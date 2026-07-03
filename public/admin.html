@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>收纳记忆</title>
+    <link rel="stylesheet" href="/admin.css">
+  </head>
+  <body>
+    <main class="shell">
+      <header class="topbar">
+        <h1>收纳记忆</h1>
+        <a id="exportLink" href="/api/export.csv">导出 CSV</a>
+      </header>
+
+      <section class="panel">
+        <label for="token">访问令牌</label>
+        <input id="token" type="password" placeholder="SHORTCUT_TOKEN">
+      </section>
+
+      <section class="panel">
+        <label for="search">搜索</label>
+        <input id="search" type="search" placeholder="螺丝、充电线、修椅子用的东西">
+      </section>
+
+      <section id="items" class="items"></section>
+    </main>
+    <script src="/admin.js"></script>
+  </body>
+</html>

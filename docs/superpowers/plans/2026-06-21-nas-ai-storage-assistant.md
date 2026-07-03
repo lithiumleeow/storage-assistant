@@ -1258,7 +1258,7 @@ git commit -m "feat: add storage assistant api"
 - Create: `public/admin.js`
 - Modify: `tests/api.test.js`
 
-- [ ] **Step 1: Add export test**
+- [x] **Step 1: Add export test**
 
 Append to `tests/api.test.js`:
 
@@ -1285,13 +1285,13 @@ Append to `tests/api.test.js`:
   });
 ```
 
-- [ ] **Step 2: Run API tests**
+- [x] **Step 2: Run API tests**
 
 Run: `npm test -- tests/api.test.js`
 
 Expected: PASS because CSV route already exists.
 
-- [ ] **Step 3: Create admin HTML**
+- [x] **Step 3: Create admin HTML**
 
 Create `public/admin.html`:
 
@@ -1328,7 +1328,7 @@ Create `public/admin.html`:
 </html>
 ```
 
-- [ ] **Step 4: Create admin CSS**
+- [x] **Step 4: Create admin CSS**
 
 Create `public/admin.css`:
 
@@ -1441,7 +1441,7 @@ button {
 }
 ```
 
-- [ ] **Step 5: Create admin JS**
+- [x] **Step 5: Create admin JS**
 
 Create `public/admin.js`:
 
@@ -1521,13 +1521,13 @@ searchInput.addEventListener('input', () => {
 loadItems();
 ```
 
-- [ ] **Step 6: Run tests**
+- [x] **Step 6: Run tests**
 
 Run: `npm test`
 
 Expected: PASS.
 
-- [ ] **Step 7: Commit admin**
+- [x] **Step 7: Commit admin**
 
 ```bash
 git add public/admin.html public/admin.css public/admin.js tests/api.test.js

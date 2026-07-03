@@ -106,4 +106,25 @@ describe('API routes', () => {
     const list = await authed(request(app).get('/api/items'));
     expect(list.body.items[0].location).toBe('书桌抽屉');
   });
+
+  it('exports CSV records', async () => {
+    db.createItem({
+      displayName: 'Battery',
+      rawText: '电池放在柜子',
+      description: '',
+      category: 'daily_supplies',
+      tags: ['电池'],
+      useContext: 'backup power',
+      relatedItems: [],
+      location: '柜子',
+      zone: 'supplies area',
+      placementReason: '',
+      confidence: 0.8,
+      photoPaths: []
+    });
+    const res = await authed(request(app).get('/api/export.csv'));
+    expect(res.status).toBe(200);
+    expect(res.text).toContain('Battery');
+    expect(res.text).toContain('柜子');
+  });
 });
