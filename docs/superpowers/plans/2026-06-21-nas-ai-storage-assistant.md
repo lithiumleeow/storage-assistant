@@ -900,7 +900,7 @@ git commit -m "feat: add openai compatible ai client"
 - Create: `tests/api.test.js`
 - Modify: `src/server.js`
 
-- [ ] **Step 1: Write API tests**
+- [x] **Step 1: Write API tests**
 
 Create `tests/api.test.js`:
 
@@ -1016,13 +1016,13 @@ describe('API routes', () => {
 });
 ```
 
-- [ ] **Step 2: Run failing API tests**
+- [x] **Step 2: Run failing API tests**
 
 Run: `npm test -- tests/api.test.js`
 
 Expected: FAIL because routes are not wired.
 
-- [ ] **Step 3: Implement routes**
+- [x] **Step 3: Implement routes**
 
 Create `src/routes.js`:
 
@@ -1169,7 +1169,7 @@ export function createRoutes({ config, db, ai }) {
 }
 ```
 
-- [ ] **Step 4: Wire routes and default AI service**
+- [x] **Step 4: Wire routes and default AI service**
 
 Modify `src/server.js`:
 
@@ -1229,19 +1229,19 @@ if (import.meta.url === `file://${process.argv[1]}`) {
 }
 ```
 
-- [ ] **Step 5: Run API tests**
+- [x] **Step 5: Run API tests**
 
 Run: `npm test -- tests/api.test.js`
 
 Expected: PASS.
 
-- [ ] **Step 6: Run full test suite**
+- [x] **Step 6: Run full test suite**
 
 Run: `npm test`
 
 Expected: PASS.
 
-- [ ] **Step 7: Commit API routes**
+- [x] **Step 7: Commit API routes**
 
 ```bash
 git add src/routes.js src/server.js tests/api.test.js
