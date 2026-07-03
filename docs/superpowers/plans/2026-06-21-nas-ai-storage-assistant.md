@@ -43,7 +43,7 @@
 - Create: `tests/basic.test.js`
 - Create: `.gitignore`
 
-- [ ] **Step 1: Create package metadata and scripts**
+- [x] **Step 1: Create package metadata and scripts**
 
 Create `package.json`:
 
@@ -71,7 +71,7 @@ Create `package.json`:
 }
 ```
 
-- [ ] **Step 2: Add config module**
+- [x] **Step 2: Add config module**
 
 Create `src/config.js`:
 
@@ -91,7 +91,7 @@ export function loadConfig(env = process.env) {
 }
 ```
 
-- [ ] **Step 3: Add minimal Express app factory**
+- [x] **Step 3: Add minimal Express app factory**
 
 Create `src/server.js`:
 
@@ -123,7 +123,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
 }
 ```
 
-- [ ] **Step 4: Add a smoke test**
+- [x] **Step 4: Add a smoke test**
 
 Create `tests/basic.test.js`:
 
@@ -149,7 +149,7 @@ describe('basic app', () => {
 });
 ```
 
-- [ ] **Step 5: Add gitignore**
+- [x] **Step 5: Add gitignore**
 
 Create `.gitignore`:
 
@@ -161,22 +161,22 @@ data/
 coverage/
 ```
 
-- [ ] **Step 6: Install dependencies**
+- [x] **Step 6: Install dependencies**
 
-Run: `npm install`
+Run: `pnpm install`
 
-Expected: `package-lock.json` is created and npm exits successfully.
+Expected: `pnpm-lock.yaml` is created and pnpm exits successfully.
 
-- [ ] **Step 7: Run scaffold tests**
+- [x] **Step 7: Run scaffold tests**
 
 Run: `npm test`
 
 Expected: `2 passed`.
 
-- [ ] **Step 8: Commit scaffold**
+- [x] **Step 8: Commit scaffold**
 
 ```bash
-git add package.json package-lock.json src/server.js src/config.js tests/basic.test.js .gitignore
+git add package.json pnpm-lock.yaml pnpm-workspace.yaml src/server.js src/config.js tests/basic.test.js .gitignore
 git commit -m "feat: scaffold storage assistant app"
 ```
 
