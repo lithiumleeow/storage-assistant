@@ -1696,19 +1696,19 @@ git commit -m "docs: add docker deployment instructions"
 **Files:**
 - Modify only if verification exposes a real defect.
 
-- [ ] **Step 1: Run all automated tests**
+- [x] **Step 1: Run all automated tests**
 
 Run: `npm test`
 
 Expected: all test files pass.
 
-- [ ] **Step 2: Start the local server**
+- [x] **Step 2: Start the local server**
 
-Run: `PORT=3010 DATA_DIR=./data-dev SHORTCUT_TOKEN=dev-token AI_API_KEY=test npm start`
+Run: `PORT=3010 DATA_DIR=/private/tmp/storage-assistant-final SHORTCUT_TOKEN=dev-token AI_API_KEY=test pnpm start`
 
 Expected: server prints `Storage assistant listening on 3010`.
 
-- [ ] **Step 3: Verify health endpoint**
+- [x] **Step 3: Verify health endpoint**
 
 Run in another terminal:
 
@@ -1722,7 +1722,7 @@ Expected:
 {"ok":true}
 ```
 
-- [ ] **Step 4: Verify token protection**
+- [x] **Step 4: Verify token protection**
 
 Run:
 
@@ -1734,7 +1734,7 @@ curl -s -o /tmp/storage-status.txt -w "%{http_code}" -X POST http://localhost:30
 
 Expected: `401`.
 
-- [ ] **Step 5: Verify admin page loads**
+- [x] **Step 5: Verify admin page loads**
 
 Open `http://localhost:3010/admin.html` in a browser or use:
 
@@ -1744,11 +1744,11 @@ curl -I http://localhost:3010/admin.html
 
 Expected: HTTP `200`.
 
-- [ ] **Step 6: Stop server**
+- [x] **Step 6: Stop server**
 
 Stop the npm process with `Ctrl-C`.
 
-- [ ] **Step 7: Final git status**
+- [x] **Step 7: Final git status**
 
 Run: `git status --short --branch`
 

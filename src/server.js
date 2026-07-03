@@ -1,4 +1,6 @@
 import express from 'express';
+import { resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { loadConfig } from './config.js';
 import { createDatabase } from './db.js';
 import { callJsonModel } from './aiClient.js';
@@ -45,7 +47,7 @@ export function createApp(options = {}) {
   return app;
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   const config = loadConfig();
   createApp({ config }).listen(config.port, () => {
     console.log(`Storage assistant listening on ${config.port}`);
