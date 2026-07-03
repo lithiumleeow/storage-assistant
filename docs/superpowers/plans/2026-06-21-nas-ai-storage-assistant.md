@@ -522,7 +522,7 @@ git commit -m "feat: add sqlite persistence"
 - Create: `src/search.js`
 - Create: `tests/search.test.js`
 
-- [ ] **Step 1: Write search tests**
+- [x] **Step 1: Write search tests**
 
 Create `tests/search.test.js`:
 
@@ -583,13 +583,13 @@ describe('search helpers', () => {
 });
 ```
 
-- [ ] **Step 2: Run failing search tests**
+- [x] **Step 2: Run failing search tests**
 
 Run: `npm test -- tests/search.test.js`
 
 Expected: FAIL because `src/search.js` does not exist.
 
-- [ ] **Step 3: Implement local search helpers**
+- [x] **Step 3: Implement local search helpers**
 
 Create `src/search.js`:
 
@@ -665,13 +665,13 @@ export function rankPlacementCandidates(items, candidate, limit = 5) {
 }
 ```
 
-- [ ] **Step 4: Run search tests**
+- [x] **Step 4: Run search tests**
 
 Run: `npm test -- tests/search.test.js`
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit search helpers**
+- [x] **Step 5: Commit search helpers**
 
 ```bash
 git add src/search.js tests/search.test.js
