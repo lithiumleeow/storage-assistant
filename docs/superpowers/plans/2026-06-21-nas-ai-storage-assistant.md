@@ -1544,7 +1544,7 @@ git commit -m "feat: add local admin page"
 - Create: `docker-compose.yml`
 - Create: `README.md`
 
-- [ ] **Step 1: Create environment example**
+- [x] **Step 1: Create environment example**
 
 Create `.env.example`:
 
@@ -1560,29 +1560,23 @@ AI_TIMEOUT_MS=12000
 APP_VERSION=2026-06-21-v1
 ```
 
-- [ ] **Step 2: Create Dockerfile**
+- [x] **Step 2: Create Dockerfile**
 
 Create `Dockerfile`:
 
 ```Dockerfile
-FROM node:20-alpine AS build
-WORKDIR /app
-RUN apk add --no-cache python3 make g++
-COPY package*.json ./
-RUN npm ci --omit=dev
-
-FROM node:20-alpine
+FROM node:24-alpine
 WORKDIR /app
 ENV NODE_ENV=production
-COPY --from=build /app/node_modules ./node_modules
-COPY package*.json ./
+COPY package*.json pnpm-lock.yaml pnpm-workspace.yaml ./
+RUN corepack enable && pnpm install --prod --frozen-lockfile
 COPY src ./src
 COPY public ./public
 EXPOSE 3000
 CMD ["node", "src/server.js"]
 ```
 
-- [ ] **Step 3: Create Docker Compose file**
+- [x] **Step 3: Create Docker Compose file**
 
 Create `docker-compose.yml`:
 
@@ -1600,7 +1594,7 @@ services:
       - ./data:/app/data
 ```
 
-- [ ] **Step 4: Create README**
+- [x] **Step 4: Create README**
 
 Create `README.md`:
 
@@ -1612,10 +1606,10 @@ Create `README.md`:
 ## 本地运行
 
 ```bash
-npm install
+pnpm install
 cp .env.example .env
-npm test
-npm start
+pnpm test
+pnpm start
 ```
 
 打开：
@@ -1672,13 +1666,13 @@ docker compose up -d --build
 - `GET /api/export.csv`
 ```
 
-- [ ] **Step 5: Run full tests**
+- [x] **Step 5: Run full tests**
 
 Run: `npm test`
 
 Expected: PASS.
 
-- [ ] **Step 6: Build Docker image**
+- [x] **Step 6: Build Docker image**
 
 Run: `docker compose build`
 
@@ -1686,7 +1680,9 @@ Expected: Docker image builds successfully.
 
 If Docker is unavailable in the current environment, record the exact error and still keep the Docker files committed.
 
-- [ ] **Step 7: Commit deployment docs**
+Observed locally: `zsh:1: command not found: docker`.
+
+- [x] **Step 7: Commit deployment docs**
 
 ```bash
 git add .env.example Dockerfile docker-compose.yml README.md

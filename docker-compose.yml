@@ -1,0 +1,11 @@
+services:
+  storage-assistant:
+    build: .
+    container_name: storage-assistant
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
