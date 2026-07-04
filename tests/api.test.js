@@ -66,6 +66,43 @@ describe('API routes', () => {
     expect(db.listItems({})[0].displayName).toBe('M3 screws');
   });
 
+  it('confirms a draft when iPhone Shortcuts sends draftId as plain text', async () => {
+    const draft = await authed(request(app).post('/api/analyze')).send({ text: '螺丝放在工具盒' });
+    const res = await authed(request(app).post('/api/confirm'))
+      .set('Content-Type', 'text/plain')
+      .send(draft.body.draftId);
+
+    expect(res.status).toBe(200);
+    expect(res.body.savedCount).toBe(1);
+    expect(db.listItems({})[0].location).toBe('工具盒');
+  });
+
+  it('normalizes snake_case AI item fields during confirmation', async () => {
+    const draft = db.createDraft({
+      rawText: '备用钥匙放在玄关盒子',
+      analysis: {
+        items: [{
+          display_name: '备用钥匙',
+          raw_text: '备用钥匙放在玄关盒子',
+          category: 'keys',
+          tags: ['钥匙'],
+          use_context: '开门备用',
+          related_items: ['门锁'],
+          location: '玄关盒子',
+          placement_reason: '钥匙集中放置',
+          confidence: 0.8
+        }]
+      },
+      recommendation: {}
+    });
+
+    const res = await authed(request(app).post('/api/confirm')).send({ draftId: draft.id });
+
+    expect(res.status).toBe(200);
+    expect(db.listItems({})[0].displayName).toBe('备用钥匙');
+    expect(db.listItems({})[0].useContext).toBe('开门备用');
+  });
+
   it('searches stored items', async () => {
     db.createItem({
       displayName: 'M3 screws',

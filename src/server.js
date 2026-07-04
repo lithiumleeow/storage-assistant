@@ -27,6 +27,7 @@ export function createApp(options = {}) {
   const ai = options.ai || createDefaultAi(config);
   const app = express();
   app.use(express.json({ limit: '2mb' }));
+  app.use(express.text({ type: 'text/*', limit: '2mb' }));
   app.use(express.static('public'));
 
   app.get('/api/health', (req, res) => {

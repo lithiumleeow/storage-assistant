@@ -20,6 +20,40 @@ function tokenGuard(config) {
   };
 }
 
+function extractDraftId(body) {
+  if (typeof body === 'string') return body.trim();
+  if (!body || typeof body !== 'object') return '';
+  return String(
+    body.draftId ||
+    body.draft_id ||
+    body.text ||
+    body.value ||
+    body.result?.draftId ||
+    ''
+  ).trim();
+}
+
+function normalizeArray(value) {
+  return Array.isArray(value) ? value : [];
+}
+
+function normalizeItem(item, rawText) {
+  return {
+    displayName: item.displayName || item.display_name || item.name || 'Unnamed item',
+    rawText: item.rawText || item.raw_text || rawText || '',
+    description: item.description || '',
+    category: item.category || 'uncategorized',
+    tags: normalizeArray(item.tags || item.tags_json),
+    useContext: item.useContext || item.use_context || '',
+    relatedItems: normalizeArray(item.relatedItems || item.related_items || item.related_items_json),
+    location: item.location || '',
+    zone: item.zone || '',
+    placementReason: item.placementReason || item.placement_reason || '',
+    confidence: Number(item.confidence || 0),
+    photoPaths: normalizeArray(item.photoPaths || item.photo_paths || item.photo_paths_json)
+  };
+}
+
 export function createRoutes({ config, db, ai }) {
   const router = express.Router();
   router.use(tokenGuard(config));
@@ -40,28 +74,20 @@ export function createRoutes({ config, db, ai }) {
 
   router.post('/confirm', (req, res, next) => {
     try {
-      const draftId = requireText(req.body.draftId, 'draftId');
+      const draftId = requireText(extractDraftId(req.body), 'draftId');
       const draft = db.getDraft(draftId);
       if (!draft || draft.status !== 'draft') {
         res.status(404).json({ error: 'Draft not found' });
         return;
       }
       const overrideItems = Array.isArray(req.body.items) ? req.body.items : [];
-      const items = (draft.analysis.items || []).map((item, index) => ({ ...item, ...(overrideItems[index] || {}) }));
-      const saved = items.map((item) => db.createItem({
-        displayName: item.displayName,
-        rawText: draft.rawText,
-        description: item.description,
-        category: item.category,
-        tags: item.tags,
-        useContext: item.useContext,
-        relatedItems: item.relatedItems,
-        location: item.location,
-        zone: item.zone,
-        placementReason: item.placementReason,
-        confidence: item.confidence,
-        photoPaths: item.photoPaths || []
-      }));
+      const draftItems = Array.isArray(draft.analysis.items) ? draft.analysis.items : [];
+      if (draftItems.length === 0) {
+        res.status(422).json({ error: 'Draft has no item records to save' });
+        return;
+      }
+      const items = draftItems.map((item, index) => normalizeItem({ ...item, ...(overrideItems[index] || {}) }, draft.rawText));
+      const saved = items.map((item) => db.createItem(item));
       db.markDraftConfirmed(draftId);
       res.json({ ok: true, savedCount: saved.length, items: saved });
     } catch (err) {
