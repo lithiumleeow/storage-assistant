@@ -54,11 +54,17 @@ function mapDraft(row) {
 }
 
 function mapLocation(row) {
+  const segments = normalizePath(row.path).split(' / ').filter(Boolean);
   return {
     id: row.id,
     name: row.name,
     parentId: row.parent_id || null,
     path: row.path,
+    segments,
+    room: segments[0] || '',
+    area: segments[1] || '',
+    detail: segments[2] || '',
+    level: segments.length,
     aliases: parseJson(row.aliases_json, []),
     status: row.status,
     createdAt: row.created_at,

@@ -85,6 +85,17 @@ function normalizeArray(value) {
   return Array.isArray(value) ? value : [];
 }
 
+function optionalText(value) {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+function buildStructuredLocationPath(body) {
+  const hasStructuredFields = body.room !== undefined || body.area !== undefined || body.detail !== undefined;
+  if (!hasStructuredFields) return '';
+  const room = requireText(body.room, 'room');
+  return [room, optionalText(body.area), optionalText(body.detail)].filter(Boolean).join(' / ');
+}
+
 function normalizeItem(item, rawText) {
   return {
     displayName: item.displayName || item.display_name || item.name || 'Unnamed item',
@@ -254,6 +265,21 @@ export function createRoutes({ config, db, ai }) {
 
   router.post('/locations', (req, res, next) => {
     try {
+      const structuredPath = buildStructuredLocationPath(req.body);
+      if (structuredPath) {
+        const aliases = normalizeArray(req.body.aliases);
+        const location = db.createLocationPath(structuredPath);
+        const updated = aliases.length ? db.updateLocation(location.id, { aliases }) : location;
+        res.json(updated);
+        return;
+      }
+      if (req.body.path) {
+        const aliases = normalizeArray(req.body.aliases);
+        const location = db.createLocationPath(req.body.path);
+        const updated = aliases.length ? db.updateLocation(location.id, { aliases }) : location;
+        res.json(updated);
+        return;
+      }
       const name = requireText(req.body.name, 'name');
       const location = db.createLocation({
         name,

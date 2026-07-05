@@ -5,7 +5,7 @@ const exportLink = document.querySelector('#exportLink');
 const addForm = document.querySelector('#addForm');
 const addStatus = document.querySelector('#addStatus');
 const locationForm = document.querySelector('#locationForm');
-const locationParent = document.querySelector('#locationParent');
+const roomOptions = document.querySelector('#roomOptions');
 const locationStatus = document.querySelector('#locationStatus');
 const locationsEl = document.querySelector('#locations');
 const roomTabsEl = document.querySelector('#roomTabs');
@@ -14,6 +14,8 @@ const locationCount = document.querySelector('#locationCount');
 const reviewPreview = document.querySelector('#reviewPreview');
 const pageViews = [...document.querySelectorAll('[data-page-view]')];
 const tabButtons = [...document.querySelectorAll('.tab[data-page]')];
+
+const COMMON_ROOMS = ['厨房', '客厅', '餐厅', '书房', '卧室', '阳台', '厕所', '洗手台', '玄关'];
 
 let locations = [];
 let items = [];
@@ -64,6 +66,10 @@ function locationIcon(location) {
 function filteredLocations() {
   if (activeRoom === '全部') return locations;
   return locations.filter((location) => firstSegment(location.path) === activeRoom);
+}
+
+function allRooms() {
+  return ['全部', ...new Set([...COMMON_ROOMS, ...locations.map((location) => firstSegment(location.path))])];
 }
 
 async function loadItems() {
@@ -137,14 +143,14 @@ function renderItems() {
 }
 
 function renderLocationOptions() {
-  locationParent.innerHTML = [
-    '<option value="">顶层位置</option>',
-    ...locations.map((location) => `<option value="${esc(location.id)}">${esc(location.path)}</option>`)
-  ].join('');
+  roomOptions.innerHTML = allRooms()
+    .filter((room) => room !== '全部')
+    .map((room) => `<option value="${esc(room)}"></option>`)
+    .join('');
 }
 
 function renderRoomTabs() {
-  const rooms = ['全部', ...new Set(locations.map((location) => firstSegment(location.path)))];
+  const rooms = allRooms();
   if (!rooms.includes(activeRoom)) activeRoom = '全部';
   roomTabsEl.innerHTML = [
     ...rooms.map((room) => `<button class="room-tab ${room === activeRoom ? 'active' : ''}" type="button" data-room="${esc(room)}">${esc(room)}</button>`),
@@ -239,7 +245,7 @@ document.addEventListener('click', (event) => {
     return;
   }
   if (event.target.closest('[data-focus-location]')) {
-    setActivePage('locations', { focus: '#locationName' });
+    setActivePage('locations', { focus: '#locationRoom' });
   }
 });
 
@@ -297,8 +303,9 @@ locationForm.addEventListener('submit', async (event) => {
     method: 'POST',
     headers: headers(),
     body: JSON.stringify({
-      name: form.get('name'),
-      parentId: form.get('parentId') || null,
+      room: form.get('room'),
+      area: form.get('area'),
+      detail: form.get('detail'),
       aliases
     })
   });

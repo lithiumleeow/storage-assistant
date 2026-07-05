@@ -197,6 +197,32 @@ describe('API routes', () => {
     expect(activeList.body.locations.map((location) => location.id)).not.toContain(drawer.body.id);
   });
 
+  it('creates three-level locations from room area and detail fields', async () => {
+    const res = await authed(request(app).post('/api/locations')).send({
+      room: '书房',
+      area: '货架',
+      detail: '第三层',
+      aliases: ['书房货架三层']
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.path).toBe('书房 / 货架 / 第三层');
+    expect(res.body.room).toBe('书房');
+    expect(res.body.area).toBe('货架');
+    expect(res.body.detail).toBe('第三层');
+    expect(db.getLocationByPath('书房 / 货架 / 第三层').aliases).toEqual(['书房货架三层']);
+  });
+
+  it('requires a room when creating a structured location', async () => {
+    const res = await authed(request(app).post('/api/locations')).send({
+      area: '货架',
+      detail: '第三层'
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toContain('room is required');
+  });
+
   it('confirms a matched draft with structured location metadata', async () => {
     const room = db.createLocation({ name: '客厅' });
     const drawer = db.createLocation({ name: '左侧抽屉', parentId: room.id });

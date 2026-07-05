@@ -122,11 +122,21 @@
             </div>
           </div>
           <form id="locationForm" class="stack-form">
-            <input id="locationName" name="name" required placeholder="位置名称，比如 客厅、电视柜、左侧抽屉">
-            <select id="locationParent" name="parentId">
-              <option value="">顶层位置</option>
-            </select>
-            <input id="locationAliases" name="aliases" placeholder="别名，用逗号分隔，比如 左抽,客厅抽屉">
+            <input id="locationRoom" name="room" required list="roomOptions" placeholder="房间，比如 书房">
+            <datalist id="roomOptions">
+              <option value="厨房"></option>
+              <option value="客厅"></option>
+              <option value="餐厅"></option>
+              <option value="书房"></option>
+              <option value="卧室"></option>
+              <option value="阳台"></option>
+              <option value="厕所"></option>
+              <option value="洗手台"></option>
+              <option value="玄关"></option>
+            </datalist>
+            <input id="locationArea" name="area" placeholder="具体位置，可不填，比如 货架、电视柜、衣柜">
+            <input id="locationDetail" name="detail" placeholder="详细位置，可不填，比如 第三层、左侧抽屉">
+            <input id="locationAliases" name="aliases" placeholder="别名，用逗号分隔，比如 书房货架,货架">
             <button class="secondary-button full" type="submit">保存位置</button>
             <p id="locationStatus" class="muted"></p>
           </form>

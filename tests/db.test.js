@@ -61,6 +61,10 @@ describe('database', () => {
     const finalLocation = db.createLocationPath('书房 / 白色收纳盒 / 第一层');
 
     expect(finalLocation.path).toBe('书房 / 白色收纳盒 / 第一层');
+    expect(finalLocation.room).toBe('书房');
+    expect(finalLocation.area).toBe('白色收纳盒');
+    expect(finalLocation.detail).toBe('第一层');
+    expect(finalLocation.level).toBe(3);
     expect(db.listLocations()).toHaveLength(3);
     expect(db.createLocationPath('书房 / 白色收纳盒 / 第一层').id).toBe(finalLocation.id);
   });
