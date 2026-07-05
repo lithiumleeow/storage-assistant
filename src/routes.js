@@ -338,6 +338,11 @@ export function createRoutes({ config, db, ai }) {
         useContext: req.body.useContext || '',
         relatedItems: Array.isArray(req.body.relatedItems) ? req.body.relatedItems : [],
         location,
+        locationId: req.body.locationId || req.body.location_id || null,
+        locationMatchStatus: req.body.locationMatchStatus || req.body.location_match_status || 'manual_text',
+        locationCandidates: Array.isArray(req.body.locationCandidates || req.body.location_candidates)
+          ? (req.body.locationCandidates || req.body.location_candidates)
+          : [],
         zone: req.body.zone || '',
         placementReason: req.body.placementReason || 'Manual admin entry',
         confidence: Number(req.body.confidence || 1),

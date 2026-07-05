@@ -584,6 +584,11 @@ h2 {
   margin-top: 12px;
 }
 
+.location-fields {
+  display: grid;
+  gap: 8px;
+}
+
 input,
 textarea,
 select {

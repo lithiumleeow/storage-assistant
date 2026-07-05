@@ -6,6 +6,8 @@ const addForm = document.querySelector('#addForm');
 const addStatus = document.querySelector('#addStatus');
 const locationForm = document.querySelector('#locationForm');
 const roomOptions = document.querySelector('#roomOptions');
+const itemAreaOptions = document.querySelector('#itemAreaOptions');
+const itemDetailOptions = document.querySelector('#itemDetailOptions');
 const locationStatus = document.querySelector('#locationStatus');
 const locationsEl = document.querySelector('#locations');
 const roomTabsEl = document.querySelector('#roomTabs');
@@ -48,6 +50,20 @@ function shortPath(path) {
   return String(path || '').replace(/\s*\/\s*/g, ' > ');
 }
 
+function formatDateTime(value) {
+  if (!value) return '未知时间';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+  return new Intl.DateTimeFormat('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  }).format(date);
+}
+
 function countItemsInLocation(path) {
   if (!path) return 0;
   return items.filter((item) => String(item.location || '').startsWith(path)).length;
@@ -70,6 +86,26 @@ function filteredLocations() {
 
 function allRooms() {
   return ['全部', ...new Set([...COMMON_ROOMS, ...locations.map((location) => firstSegment(location.path))])];
+}
+
+function uniqueLocationPart(part) {
+  const values = locations
+    .map((location) => location[part] || '')
+    .map((value) => String(value).trim())
+    .filter(Boolean);
+  return [...new Set(values)];
+}
+
+function buildLocationInput(form) {
+  const room = String(form.get('room') || '').trim();
+  const area = String(form.get('area') || '').trim();
+  const detail = String(form.get('detail') || '').trim();
+  return {
+    room,
+    area,
+    detail,
+    path: [room, area, detail].filter(Boolean).join(' / ')
+  };
 }
 
 async function loadItems() {
@@ -130,6 +166,7 @@ function renderItems() {
         <span class="count-pill">${Math.round(Number(item.confidence || 0) * 10) || 1}</span>
       </div>
       <div class="item-location">${esc(shortPath(item.location || '未记录'))}</div>
+      <p class="muted">存入时间：${esc(formatDateTime(item.createdAt))}</p>
       ${item.correctedText && item.correctedText !== item.rawText ? `<p class="muted">语音修正：${esc(item.correctedText)}</p>` : ''}
       <p class="muted">${esc(item.description || item.rawText || '暂无备注')}</p>
       <div class="tags">${(item.tags || []).map((tag) => `<span class="tag">${esc(tag)}</span>`).join('')}</div>
@@ -146,6 +183,12 @@ function renderLocationOptions() {
   roomOptions.innerHTML = allRooms()
     .filter((room) => room !== '全部')
     .map((room) => `<option value="${esc(room)}"></option>`)
+    .join('');
+  itemAreaOptions.innerHTML = uniqueLocationPart('area')
+    .map((area) => `<option value="${esc(area)}"></option>`)
+    .join('');
+  itemDetailOptions.innerHTML = uniqueLocationPart('detail')
+    .map((detail) => `<option value="${esc(detail)}"></option>`)
     .join('');
 }
 
@@ -268,16 +311,37 @@ addForm.addEventListener('submit', async (event) => {
   event.preventDefault();
   addStatus.textContent = '保存中...';
   const form = new FormData(addForm);
+  const locationInput = buildLocationInput(form);
+  if (!locationInput.room) {
+    addStatus.textContent = '请至少填写房间。';
+    return;
+  }
   const tags = String(form.get('tags') || '')
     .split(/[,，]/)
     .map((tag) => tag.trim())
     .filter(Boolean);
+  const locationRes = await fetch('/api/locations', {
+    method: 'POST',
+    headers: headers(),
+    body: JSON.stringify({
+      room: locationInput.room,
+      area: locationInput.area,
+      detail: locationInput.detail
+    })
+  });
+  if (!locationRes.ok) {
+    addStatus.textContent = '位置保存失败，请检查访问令牌和位置内容。';
+    return;
+  }
+  const savedLocation = await locationRes.json();
   const res = await fetch('/api/items', {
     method: 'POST',
     headers: headers(),
     body: JSON.stringify({
       displayName: form.get('displayName'),
-      location: form.get('location'),
+      location: savedLocation.path || locationInput.path,
+      locationId: savedLocation.id || null,
+      locationMatchStatus: savedLocation.id ? 'manual_location' : 'manual_text',
       description: form.get('description'),
       tags
     })

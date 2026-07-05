@@ -355,17 +355,23 @@ describe('API routes', () => {
   });
 
   it('creates manual item records from admin input', async () => {
+    const location = db.createLocationPath('玄关 / 玄关柜 / 左边小盒子');
     const res = await authed(request(app).post('/api/items')).send({
       displayName: '备用钥匙',
-      location: '玄关柜左边小盒子',
+      location: location.path,
+      locationId: location.id,
+      locationMatchStatus: 'manual_location',
       tags: ['钥匙', '备用'],
       description: '家门备用钥匙'
     });
 
     expect(res.status).toBe(200);
     expect(res.body.displayName).toBe('备用钥匙');
-    expect(res.body.location).toBe('玄关柜左边小盒子');
+    expect(res.body.location).toBe('玄关 / 玄关柜 / 左边小盒子');
+    expect(res.body.locationId).toBe(location.id);
+    expect(res.body.locationMatchStatus).toBe('manual_location');
     expect(res.body.tags).toEqual(['钥匙', '备用']);
+    expect(res.body.createdAt).toBeTruthy();
   });
 
   it('exports CSV records', async () => {
