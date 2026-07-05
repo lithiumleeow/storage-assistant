@@ -77,6 +77,17 @@ describe('API routes', () => {
     expect(db.listItems({})[0].location).toBe('工具盒');
   });
 
+  it('confirms a draft when iPhone Shortcuts sends JSON text as text/plain', async () => {
+    const draft = await authed(request(app).post('/api/analyze')).send({ text: '螺丝放在工具盒' });
+    const res = await authed(request(app).post('/api/confirm'))
+      .set('Content-Type', 'text/plain')
+      .send(JSON.stringify({ draftId: draft.body.draftId }));
+
+    expect(res.status).toBe(200);
+    expect(res.body.savedCount).toBe(1);
+    expect(db.listItems({})[0].displayName).toBe('M3 screws');
+  });
+
   it('normalizes snake_case AI item fields during confirmation', async () => {
     const draft = db.createDraft({
       rawText: '备用钥匙放在玄关盒子',

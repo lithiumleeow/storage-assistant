@@ -21,7 +21,17 @@ function tokenGuard(config) {
 }
 
 function extractDraftId(body) {
-  if (typeof body === 'string') return body.trim();
+  if (typeof body === 'string') {
+    const text = body.trim();
+    if (text.startsWith('{')) {
+      try {
+        return extractDraftId(JSON.parse(text));
+      } catch {
+        return text;
+      }
+    }
+    return text;
+  }
   if (!body || typeof body !== 'object') return '';
   return String(
     body.draftId ||
