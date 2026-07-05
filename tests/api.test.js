@@ -100,6 +100,15 @@ describe('API routes', () => {
     expect(db.listItems({})[0].displayName).toBe('M3 screws');
   });
 
+  it('confirms a draft through query string for body-free shortcuts', async () => {
+    const draft = await authed(request(app).post('/api/analyze')).send({ text: '螺丝放在工具盒' });
+    const res = await authed(request(app).get(`/api/confirm-text?draftId=${encodeURIComponent(draft.body.draftId)}`));
+
+    expect(res.status).toBe(200);
+    expect(res.text).toContain('已保存 1 条');
+    expect(db.listItems({})[0].displayName).toBe('M3 screws');
+  });
+
   it('returns a plain text error when shortcut confirmation fails', async () => {
     const res = await authed(request(app).post('/api/confirm-text'))
       .set('Content-Type', 'text/plain')

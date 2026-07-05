@@ -64,8 +64,8 @@ function normalizeItem(item, rawText) {
   };
 }
 
-function confirmDraft({ db, body }) {
-  const draftId = requireText(extractDraftId(body), 'draftId');
+function confirmDraft({ db, body, query }) {
+  const draftId = requireText(query?.draftId || query?.draft_id || extractDraftId(body), 'draftId');
   const draft = db.getDraft(draftId);
   if (!draft || draft.status !== 'draft') {
     const err = new Error('Draft not found');
@@ -106,7 +106,7 @@ export function createRoutes({ config, db, ai }) {
 
   router.post('/confirm', (req, res, next) => {
     try {
-      const { saved } = confirmDraft({ db, body: req.body });
+      const { saved } = confirmDraft({ db, body: req.body, query: req.query });
       res.json({ ok: true, savedCount: saved.length, items: saved });
     } catch (err) {
       console.warn(`[confirm] failed: ${err.message}`);
@@ -116,7 +116,18 @@ export function createRoutes({ config, db, ai }) {
 
   router.post('/confirm-text', (req, res) => {
     try {
-      const { saved } = confirmDraft({ db, body: req.body });
+      const { saved } = confirmDraft({ db, body: req.body, query: req.query });
+      const names = saved.map((item) => item.displayName).join('，');
+      res.type('text/plain').send(`已保存 ${saved.length} 条：${names}`);
+    } catch (err) {
+      console.warn(`[confirm-text] failed: ${err.message}`);
+      res.status(err.status || 500).type('text/plain').send(`保存失败：${err.message}`);
+    }
+  });
+
+  router.get('/confirm-text', (req, res) => {
+    try {
+      const { saved } = confirmDraft({ db, body: req.body, query: req.query });
       const names = saved.map((item) => item.displayName).join('，');
       res.type('text/plain').send(`已保存 ${saved.length} 条：${names}`);
     } catch (err) {
