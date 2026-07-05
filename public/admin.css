@@ -124,21 +124,28 @@ h2 {
   color: #161b1e;
 }
 
-.hex-icon {
-  width: 17px;
-  height: 17px;
-  border: 3px solid currentColor;
-  border-radius: 5px;
-  transform: rotate(30deg);
-  position: relative;
+.svg-icon,
+.tab-svg,
+.mic-svg,
+.pin-svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2.2;
 }
 
-.hex-icon::after {
-  content: "";
-  position: absolute;
-  inset: 4px;
-  border-radius: 50%;
-  background: currentColor;
+.svg-icon {
+  width: 22px;
+  height: 22px;
+}
+
+.page {
+  display: none;
+}
+
+.page.active {
+  display: block;
 }
 
 .search-shell {
@@ -167,8 +174,7 @@ h2 {
   color: #929aa3;
 }
 
-.search-icon,
-.tab-search {
+.search-icon {
   width: 22px;
   height: 22px;
   border: 3px solid #6f7780;
@@ -176,8 +182,7 @@ h2 {
   position: relative;
 }
 
-.search-icon::after,
-.tab-search::after {
+.search-icon::after {
   content: "";
   width: 9px;
   height: 3px;
@@ -249,52 +254,11 @@ h2 {
   box-shadow: 0 14px 24px rgba(10, 163, 148, 0.24);
 }
 
-.mic-icon,
-.tab-mic {
-  width: 24px;
-  height: 36px;
-  border: 7px solid #fff;
-  border-top-width: 12px;
-  border-radius: 18px;
-  position: relative;
-}
-
-.mic-icon::before,
-.tab-mic::before {
-  content: "";
-  position: absolute;
-  left: 50%;
-  bottom: -17px;
-  width: 4px;
-  height: 14px;
-  border-radius: 99px;
-  background: currentColor;
-  transform: translateX(-50%);
-}
-
-.mic-icon::after,
-.tab-mic::after {
-  content: "";
-  position: absolute;
-  left: 50%;
-  bottom: -21px;
-  width: 26px;
-  height: 4px;
-  border-radius: 99px;
-  background: currentColor;
-  transform: translateX(-50%);
-}
-
-.mic-icon {
+.mic-svg {
+  width: 52px;
+  height: 52px;
   color: #fff;
-}
-
-.tab-mic {
-  width: 15px;
-  height: 22px;
-  border-width: 4px;
-  border-top-width: 7px;
-  color: currentColor;
+  stroke-width: 2;
 }
 
 .voice-copy {
@@ -457,21 +421,11 @@ h2 {
   padding: 16px 14px;
 }
 
-.pin-icon {
-  width: 20px;
-  height: 20px;
-  border-radius: 50% 50% 50% 0;
-  background: var(--teal);
-  transform: rotate(-45deg);
-  position: relative;
-}
-
-.pin-icon::after {
-  content: "";
-  position: absolute;
-  inset: 6px;
-  border-radius: 50%;
-  background: #fff;
+.pin-svg {
+  width: 24px;
+  height: 24px;
+  color: var(--teal);
+  stroke-width: 2.1;
 }
 
 .link-button,
@@ -785,50 +739,11 @@ select:focus {
   color: var(--teal);
 }
 
-.tab span {
-  color: currentColor;
-}
-
-.tab-folder {
+.tab-svg {
   width: 25px;
-  height: 19px;
-  border: 3px solid currentColor;
-  border-radius: 4px;
-  position: relative;
-}
-
-.tab-folder::before {
-  content: "";
-  position: absolute;
-  top: -8px;
-  left: -3px;
-  width: 13px;
-  height: 8px;
-  border: 3px solid currentColor;
-  border-bottom: 0;
-  border-radius: 4px 4px 0 0;
-  background: #fff;
-}
-
-.tab-user {
-  width: 24px;
-  height: 24px;
-  border: 3px solid currentColor;
-  border-radius: 50% 50% 45% 45%;
-  position: relative;
-}
-
-.tab-user::before {
-  content: "";
-  position: absolute;
-  top: -11px;
-  left: 50%;
-  width: 10px;
-  height: 10px;
-  border: 3px solid currentColor;
-  border-radius: 50%;
-  background: #fff;
-  transform: translateX(-50%);
+  height: 25px;
+  color: currentColor;
+  stroke-width: 2.15;
 }
 
 @media (min-width: 720px) {

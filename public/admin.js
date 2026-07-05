@@ -12,10 +12,13 @@ const roomTabsEl = document.querySelector('#roomTabs');
 const activeRoomTitle = document.querySelector('#activeRoomTitle');
 const locationCount = document.querySelector('#locationCount');
 const reviewPreview = document.querySelector('#reviewPreview');
+const pageViews = [...document.querySelectorAll('[data-page-view]')];
+const tabButtons = [...document.querySelectorAll('.tab[data-page]')];
 
 let locations = [];
 let items = [];
 let activeRoom = '全部';
+let activePage = 'entry';
 
 tokenInput.value = localStorage.getItem('storage-token') || '';
 
@@ -145,7 +148,7 @@ function renderRoomTabs() {
   if (!rooms.includes(activeRoom)) activeRoom = '全部';
   roomTabsEl.innerHTML = [
     ...rooms.map((room) => `<button class="room-tab ${room === activeRoom ? 'active' : ''}" type="button" data-room="${esc(room)}">${esc(room)}</button>`),
-    '<button class="room-tab" type="button" data-jump="#locationForm">＋ 添加</button>'
+    '<button class="room-tab" type="button" data-focus-location>＋ 添加</button>'
   ].join('');
 }
 
@@ -173,9 +176,21 @@ function renderLocations() {
   }).join('') || '<p class="empty-state">还没有常用位置。</p>';
 }
 
-function jumpTo(selector) {
-  const target = document.querySelector(selector);
-  if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+function setActivePage(page, { focus = '' } = {}) {
+  activePage = page || 'entry';
+  pageViews.forEach((view) => {
+    view.classList.toggle('active', view.dataset.pageView === activePage);
+  });
+  tabButtons.forEach((tab) => {
+    tab.classList.toggle('active', tab.dataset.page === activePage);
+  });
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  if (focus) {
+    requestAnimationFrame(() => {
+      const target = document.querySelector(focus);
+      if (target) target.focus({ preventScroll: true });
+    });
+  }
 }
 
 itemsEl.addEventListener('click', async (event) => {
@@ -206,22 +221,26 @@ locationsEl.addEventListener('click', async (event) => {
 
 roomTabsEl.addEventListener('click', (event) => {
   const room = event.target.dataset.room;
-  const jump = event.target.dataset.jump;
   if (room) {
     activeRoom = room;
     renderRoomTabs();
     renderLocations();
   }
-  if (jump) jumpTo(jump);
 });
 
 document.addEventListener('click', (event) => {
-  const jump = event.target.closest('[data-jump]')?.dataset.jump;
-  if (!jump) return;
-  document.querySelectorAll('.tab').forEach((tab) => {
-    tab.classList.toggle('active', tab.dataset.jump === jump);
-  });
-  jumpTo(jump);
+  const pageButton = event.target.closest('[data-page]');
+  if (pageButton) {
+    setActivePage(pageButton.dataset.page);
+    return;
+  }
+  if (event.target.closest('[data-focus-manual]')) {
+    setActivePage('entry', { focus: '#itemName' });
+    return;
+  }
+  if (event.target.closest('[data-focus-location]')) {
+    setActivePage('locations', { focus: '#locationName' });
+  }
 });
 
 tokenInput.addEventListener('change', () => {
@@ -230,8 +249,13 @@ tokenInput.addEventListener('change', () => {
 });
 
 searchInput.addEventListener('input', () => {
+  if (activePage !== 'search') setActivePage('search');
   clearTimeout(window.searchTimer);
   window.searchTimer = setTimeout(loadItems, 200);
+});
+
+searchInput.addEventListener('focus', () => {
+  if (activePage !== 'search') setActivePage('search');
 });
 
 addForm.addEventListener('submit', async (event) => {
@@ -288,5 +312,6 @@ locationForm.addEventListener('submit', async (event) => {
 });
 
 renderReviewPreview();
+setActivePage('entry');
 loadItems();
 loadLocations();
