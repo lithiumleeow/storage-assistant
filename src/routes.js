@@ -64,6 +64,28 @@ function normalizeItem(item, rawText) {
   };
 }
 
+function confirmDraft({ db, body }) {
+  const draftId = requireText(extractDraftId(body), 'draftId');
+  const draft = db.getDraft(draftId);
+  if (!draft || draft.status !== 'draft') {
+    const err = new Error('Draft not found');
+    err.status = 404;
+    throw err;
+  }
+  const overrideItems = Array.isArray(body?.items) ? body.items : [];
+  const draftItems = Array.isArray(draft.analysis.items) ? draft.analysis.items : [];
+  if (draftItems.length === 0) {
+    const err = new Error('Draft has no item records to save');
+    err.status = 422;
+    throw err;
+  }
+  const items = draftItems.map((item, index) => normalizeItem({ ...item, ...(overrideItems[index] || {}) }, draft.rawText));
+  const saved = items.map((item) => db.createItem(item));
+  db.markDraftConfirmed(draftId);
+  console.log(`[confirm] saved=${saved.length} draftId=${draftId}`);
+  return { draftId, saved };
+}
+
 export function createRoutes({ config, db, ai }) {
   const router = express.Router();
   router.use(tokenGuard(config));
@@ -84,24 +106,22 @@ export function createRoutes({ config, db, ai }) {
 
   router.post('/confirm', (req, res, next) => {
     try {
-      const draftId = requireText(extractDraftId(req.body), 'draftId');
-      const draft = db.getDraft(draftId);
-      if (!draft || draft.status !== 'draft') {
-        res.status(404).json({ error: 'Draft not found' });
-        return;
-      }
-      const overrideItems = Array.isArray(req.body.items) ? req.body.items : [];
-      const draftItems = Array.isArray(draft.analysis.items) ? draft.analysis.items : [];
-      if (draftItems.length === 0) {
-        res.status(422).json({ error: 'Draft has no item records to save' });
-        return;
-      }
-      const items = draftItems.map((item, index) => normalizeItem({ ...item, ...(overrideItems[index] || {}) }, draft.rawText));
-      const saved = items.map((item) => db.createItem(item));
-      db.markDraftConfirmed(draftId);
+      const { saved } = confirmDraft({ db, body: req.body });
       res.json({ ok: true, savedCount: saved.length, items: saved });
     } catch (err) {
+      console.warn(`[confirm] failed: ${err.message}`);
       next(err);
+    }
+  });
+
+  router.post('/confirm-text', (req, res) => {
+    try {
+      const { saved } = confirmDraft({ db, body: req.body });
+      const names = saved.map((item) => item.displayName).join('，');
+      res.type('text/plain').send(`已保存 ${saved.length} 条：${names}`);
+    } catch (err) {
+      console.warn(`[confirm-text] failed: ${err.message}`);
+      res.status(err.status || 500).type('text/plain').send(`保存失败：${err.message}`);
     }
   });
 

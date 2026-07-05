@@ -88,6 +88,27 @@ describe('API routes', () => {
     expect(db.listItems({})[0].displayName).toBe('M3 screws');
   });
 
+  it('returns plain text for shortcut confirmation', async () => {
+    const draft = await authed(request(app).post('/api/analyze')).send({ text: '螺丝放在工具盒' });
+    const res = await authed(request(app).post('/api/confirm-text'))
+      .set('Content-Type', 'text/plain')
+      .send(JSON.stringify({ draftId: draft.body.draftId }));
+
+    expect(res.status).toBe(200);
+    expect(res.text).toContain('已保存 1 条');
+    expect(res.text).toContain('M3 screws');
+    expect(db.listItems({})[0].displayName).toBe('M3 screws');
+  });
+
+  it('returns a plain text error when shortcut confirmation fails', async () => {
+    const res = await authed(request(app).post('/api/confirm-text'))
+      .set('Content-Type', 'text/plain')
+      .send(JSON.stringify({ draftId: 'draft_missing' }));
+
+    expect(res.status).toBe(404);
+    expect(res.text).toContain('保存失败');
+  });
+
   it('normalizes snake_case AI item fields during confirmation', async () => {
     const draft = db.createDraft({
       rawText: '备用钥匙放在玄关盒子',
