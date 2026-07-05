@@ -33,6 +33,23 @@
         <p id="addStatus" class="meta"></p>
       </form>
 
+      <section class="panel location-panel">
+        <div class="section-title">
+          <h2>常用位置</h2>
+          <span class="meta">先建房间、柜子、抽屉，AI 录入时会优先匹配。</span>
+        </div>
+        <form id="locationForm" class="location-form">
+          <input id="locationName" name="name" required placeholder="位置名称，比如 客厅、电视柜、左侧抽屉">
+          <select id="locationParent" name="parentId">
+            <option value="">顶层位置</option>
+          </select>
+          <input id="locationAliases" name="aliases" placeholder="别名，用逗号分隔，比如 左抽,客厅抽屉">
+          <button type="submit">保存位置</button>
+        </form>
+        <p id="locationStatus" class="meta"></p>
+        <div id="locations" class="locations"></div>
+      </section>
+
       <section id="items" class="items"></section>
     </main>
     <script src="/admin.js"></script>

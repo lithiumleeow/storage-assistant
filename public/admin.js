@@ -4,6 +4,12 @@ const itemsEl = document.querySelector('#items');
 const exportLink = document.querySelector('#exportLink');
 const addForm = document.querySelector('#addForm');
 const addStatus = document.querySelector('#addStatus');
+const locationForm = document.querySelector('#locationForm');
+const locationParent = document.querySelector('#locationParent');
+const locationStatus = document.querySelector('#locationStatus');
+const locationsEl = document.querySelector('#locations');
+
+let locations = [];
 
 tokenInput.value = localStorage.getItem('storage-token') || '';
 
@@ -37,6 +43,8 @@ async function loadItems() {
       <h2>${esc(item.displayName)}</h2>
       <div class="meta">${esc(item.category)} · ${esc(item.zone || '未标记区域')}</div>
       <div><strong>位置：</strong>${esc(item.location || '未记录')}</div>
+      ${item.correctedText && item.correctedText !== item.rawText ? `<div><strong>语音修正：</strong>${esc(item.correctedText)}</div>` : ''}
+      ${item.locationMatchStatus ? `<div class="meta">位置匹配：${esc(item.locationMatchStatus)}</div>` : ''}
       <div><strong>描述：</strong>${esc(item.description || item.rawText)}</div>
       <div class="tags">${(item.tags || []).map((tag) => `<span class="tag">${esc(tag)}</span>`).join('')}</div>
       <div class="actions">
@@ -45,6 +53,37 @@ async function loadItems() {
       </div>
     </article>
   `).join('') || '<p class="meta">还没有记录。</p>';
+}
+
+async function loadLocations() {
+  const res = await fetch('/api/locations', { headers: headers() });
+  if (!res.ok) {
+    locationsEl.innerHTML = '<p class="meta">无法加载常用位置，请检查访问令牌。</p>';
+    return;
+  }
+  const data = await res.json();
+  locations = data.locations || [];
+  renderLocationOptions();
+  renderLocations();
+}
+
+function renderLocationOptions() {
+  locationParent.innerHTML = [
+    '<option value="">顶层位置</option>',
+    ...locations.map((location) => `<option value="${esc(location.id)}">${esc(location.path)}</option>`)
+  ].join('');
+}
+
+function renderLocations() {
+  locationsEl.innerHTML = locations.map((location) => `
+    <div class="location-row">
+      <div>
+        <strong>${esc(location.path)}</strong>
+        ${(location.aliases || []).length ? `<div class="meta">别名：${location.aliases.map(esc).join('，')}</div>` : ''}
+      </div>
+      <button data-archive-location="${esc(location.id)}">归档</button>
+    </div>
+  `).join('') || '<p class="meta">还没有常用位置。</p>';
 }
 
 itemsEl.addEventListener('click', async (event) => {
@@ -56,7 +95,7 @@ itemsEl.addEventListener('click', async (event) => {
     await fetch(`/api/items/${editId}`, {
       method: 'PATCH',
       headers: headers(),
-      body: JSON.stringify({ location })
+      body: JSON.stringify({ location, locationId: null })
     });
     loadItems();
   }
@@ -66,7 +105,17 @@ itemsEl.addEventListener('click', async (event) => {
   }
 });
 
-tokenInput.addEventListener('change', loadItems);
+locationsEl.addEventListener('click', async (event) => {
+  const id = event.target.dataset.archiveLocation;
+  if (!id || !confirm('确定归档这个位置吗？已有记忆不会被删除。')) return;
+  await fetch(`/api/locations/${id}`, { method: 'DELETE', headers: headers() });
+  loadLocations();
+});
+
+tokenInput.addEventListener('change', () => {
+  loadItems();
+  loadLocations();
+});
 searchInput.addEventListener('input', () => {
   clearTimeout(window.searchTimer);
   window.searchTimer = setTimeout(loadItems, 200);
@@ -99,4 +148,31 @@ addForm.addEventListener('submit', async (event) => {
   loadItems();
 });
 
+locationForm.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  locationStatus.textContent = '保存中...';
+  const form = new FormData(locationForm);
+  const aliases = String(form.get('aliases') || '')
+    .split(/[,，]/)
+    .map((alias) => alias.trim())
+    .filter(Boolean);
+  const res = await fetch('/api/locations', {
+    method: 'POST',
+    headers: headers(),
+    body: JSON.stringify({
+      name: form.get('name'),
+      parentId: form.get('parentId') || null,
+      aliases
+    })
+  });
+  if (!res.ok) {
+    locationStatus.textContent = '保存失败，可能是名称重复或访问令牌不正确。';
+    return;
+  }
+  locationForm.reset();
+  locationStatus.textContent = '已保存位置。';
+  loadLocations();
+});
+
 loadItems();
+loadLocations();

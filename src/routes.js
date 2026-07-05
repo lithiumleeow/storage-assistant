@@ -43,6 +43,44 @@ function extractDraftId(body) {
   ).trim();
 }
 
+function parseBodyObject(body) {
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
+    if (typeof body === 'string' && body.trim().startsWith('{')) {
+      try {
+        return JSON.parse(body);
+      } catch {
+        return {};
+      }
+    }
+    return {};
+  }
+  return body;
+}
+
+function parseBoolean(value) {
+  return value === true || value === 'true' || value === '1' || value === 1;
+}
+
+function extractConfirmOptions(body, query = {}) {
+  const bodyObject = parseBodyObject(body);
+  return {
+    draftId: requireText(query.draftId || query.draft_id || extractDraftId(body), 'draftId'),
+    selectedLocationId: String(
+      query.selectedLocationId ||
+      query.selected_location_id ||
+      bodyObject.selectedLocationId ||
+      bodyObject.selected_location_id ||
+      ''
+    ).trim(),
+    createSuggestedLocation: parseBoolean(
+      query.createSuggestedLocation ||
+      query.create_suggested_location ||
+      bodyObject.createSuggestedLocation ||
+      bodyObject.create_suggested_location
+    )
+  };
+}
+
 function normalizeArray(value) {
   return Array.isArray(value) ? value : [];
 }
@@ -51,12 +89,16 @@ function normalizeItem(item, rawText) {
   return {
     displayName: item.displayName || item.display_name || item.name || 'Unnamed item',
     rawText: item.rawText || item.raw_text || rawText || '',
+    correctedText: item.correctedText || item.corrected_text || '',
     description: item.description || '',
     category: item.category || 'uncategorized',
     tags: normalizeArray(item.tags || item.tags_json),
     useContext: item.useContext || item.use_context || '',
     relatedItems: normalizeArray(item.relatedItems || item.related_items || item.related_items_json),
     location: item.location || '',
+    locationId: item.locationId || item.location_id || null,
+    locationMatchStatus: item.locationMatchStatus || item.location_match_status || '',
+    locationCandidates: normalizeArray(item.locationCandidates || item.location_candidates || item.location_candidates_json),
     zone: item.zone || '',
     placementReason: item.placementReason || item.placement_reason || '',
     confidence: Number(item.confidence || 0),
@@ -64,26 +106,71 @@ function normalizeItem(item, rawText) {
   };
 }
 
+function resolveDraftLocation({ db, draft, item, selectedLocationId, createSuggestedLocation }) {
+  const analysis = draft.analysis || {};
+  const preferredLocationId = selectedLocationId || item.locationId || analysis.locationId || '';
+  if (preferredLocationId) {
+    const location = db.getLocation(preferredLocationId);
+    if (!location || location.status === 'archived') {
+      const err = new Error('Selected location not found');
+      err.status = 404;
+      throw err;
+    }
+    return { locationId: location.id, location: location.path };
+  }
+
+  if (createSuggestedLocation && analysis.suggestedLocationPath) {
+    const location = db.createLocationPath(analysis.suggestedLocationPath);
+    return { locationId: location.id, location: location.path };
+  }
+
+  return { locationId: item.locationId || null, location: item.location || analysis.location || '' };
+}
+
 function confirmDraft({ db, body, query }) {
-  const draftId = requireText(query?.draftId || query?.draft_id || extractDraftId(body), 'draftId');
+  const { draftId, selectedLocationId, createSuggestedLocation } = extractConfirmOptions(body, query);
   const draft = db.getDraft(draftId);
   if (!draft || draft.status !== 'draft') {
     const err = new Error('Draft not found');
     err.status = 404;
     throw err;
   }
-  const overrideItems = Array.isArray(body?.items) ? body.items : [];
+  const bodyObject = parseBodyObject(body);
+  const overrideItems = Array.isArray(bodyObject.items) ? bodyObject.items : [];
   const draftItems = Array.isArray(draft.analysis.items) ? draft.analysis.items : [];
   if (draftItems.length === 0) {
     const err = new Error('Draft has no item records to save');
     err.status = 422;
     throw err;
   }
-  const items = draftItems.map((item, index) => normalizeItem({ ...item, ...(overrideItems[index] || {}) }, draft.rawText));
+  const items = draftItems.map((item, index) => {
+    const normalized = normalizeItem({ ...item, ...(overrideItems[index] || {}) }, draft.rawText);
+    const resolvedLocation = resolveDraftLocation({
+      db,
+      draft,
+      item: normalized,
+      selectedLocationId,
+      createSuggestedLocation
+    });
+    return {
+      ...normalized,
+      correctedText: draft.analysis.correctedText || normalized.correctedText || draft.rawText,
+      locationId: resolvedLocation.locationId,
+      location: resolvedLocation.location,
+      locationMatchStatus: draft.analysis.locationMatchStatus || normalized.locationMatchStatus || 'unclear',
+      locationCandidates: draft.analysis.locationCandidates || normalized.locationCandidates || []
+    };
+  });
   const saved = items.map((item) => db.createItem(item));
   db.markDraftConfirmed(draftId);
   console.log(`[confirm] saved=${saved.length} draftId=${draftId}`);
   return { draftId, saved };
+}
+
+function confirmText(saved) {
+  const names = saved.map((item) => item.displayName).join('，');
+  const locations = [...new Set(saved.map((item) => item.location).filter(Boolean))].join('，');
+  return locations ? `已保存 ${saved.length} 条：${names}。位置：${locations}` : `已保存 ${saved.length} 条：${names}`;
 }
 
 export function createRoutes({ config, db, ai }) {
@@ -94,9 +181,10 @@ export function createRoutes({ config, db, ai }) {
     try {
       const text = requireText(req.body.text, 'text');
       const history = db.listItems({}).slice(0, 50);
+      const locations = db.listLocations({});
       const similarItems = findLocalMatches(history, text, 8);
       const placementCandidates = rankPlacementCandidates(history, { rawText: text }, 5);
-      const analysis = await ai.analyze({ text, similarItems, placementCandidates });
+      const analysis = await ai.analyze({ text, similarItems, placementCandidates, locations });
       const draft = db.createDraft({ rawText: text, analysis, recommendation: { placementCandidates } });
       res.json({ draftId: draft.id, ...analysis });
     } catch (err) {
@@ -117,8 +205,7 @@ export function createRoutes({ config, db, ai }) {
   router.post('/confirm-text', (req, res) => {
     try {
       const { saved } = confirmDraft({ db, body: req.body, query: req.query });
-      const names = saved.map((item) => item.displayName).join('，');
-      res.type('text/plain').send(`已保存 ${saved.length} 条：${names}`);
+      res.type('text/plain').send(confirmText(saved));
     } catch (err) {
       console.warn(`[confirm-text] failed: ${err.message}`);
       res.status(err.status || 500).type('text/plain').send(`保存失败：${err.message}`);
@@ -128,8 +215,7 @@ export function createRoutes({ config, db, ai }) {
   router.get('/confirm-text', (req, res) => {
     try {
       const { saved } = confirmDraft({ db, body: req.body, query: req.query });
-      const names = saved.map((item) => item.displayName).join('，');
-      res.type('text/plain').send(`已保存 ${saved.length} 条：${names}`);
+      res.type('text/plain').send(confirmText(saved));
     } catch (err) {
       console.warn(`[confirm-text] failed: ${err.message}`);
       res.status(err.status || 500).type('text/plain').send(`保存失败：${err.message}`);
@@ -160,6 +246,53 @@ export function createRoutes({ config, db, ai }) {
     } catch (err) {
       next(err);
     }
+  });
+
+  router.get('/locations', (req, res) => {
+    res.json({ locations: db.listLocations({ includeArchived: req.query.includeArchived === '1' }) });
+  });
+
+  router.post('/locations', (req, res, next) => {
+    try {
+      const name = requireText(req.body.name, 'name');
+      const location = db.createLocation({
+        name,
+        parentId: req.body.parentId || req.body.parent_id || null,
+        aliases: normalizeArray(req.body.aliases)
+      });
+      res.json(location);
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  router.patch('/locations/:id', (req, res, next) => {
+    try {
+      const patch = {};
+      if (req.body.name !== undefined) patch.name = req.body.name;
+      if (req.body.parentId !== undefined || req.body.parent_id !== undefined) {
+        patch.parentId = req.body.parentId || req.body.parent_id || null;
+      }
+      if (req.body.aliases !== undefined) patch.aliases = normalizeArray(req.body.aliases);
+      if (req.body.status !== undefined) patch.status = req.body.status;
+      const location = db.updateLocation(req.params.id, patch);
+      if (!location) {
+        res.status(404).json({ error: 'Location not found' });
+        return;
+      }
+      res.json(location);
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  router.delete('/locations/:id', (req, res) => {
+    const location = db.archiveLocation(req.params.id);
+    if (!location) {
+      res.status(404).json({ error: 'Location not found' });
+      return;
+    }
+    res.json({ ok: true });
   });
 
   router.get('/items', (req, res) => {

@@ -16,14 +16,26 @@ beforeEach(() => {
   db = createDatabase({ dataDir: dir });
   ai = {
     analyze: vi.fn(async () => ({
+      rawText: '螺丝放在工具盒',
+      correctedText: '螺丝放在工具盒',
+      correctionReason: '',
+      locationMatchStatus: 'unclear',
+      locationId: null,
+      locationCandidates: [],
+      suggestedLocationPath: '',
       items: [{
         displayName: 'M3 screws',
+        rawText: '螺丝放在工具盒',
+        correctedText: '螺丝放在工具盒',
         description: 'A pack of M3 screws',
         category: 'hardware',
         tags: ['螺丝', 'M3'],
         useContext: 'repair',
         relatedItems: ['垫片'],
         location: '工具盒',
+        locationId: null,
+        locationMatchStatus: 'unclear',
+        locationCandidates: [],
         zone: 'tool area',
         placementReason: 'Keep hardware together',
         confidence: 0.9
@@ -55,7 +67,24 @@ describe('API routes', () => {
     const res = await authed(request(app).post('/api/analyze')).send({ text: '螺丝放在工具盒' });
     expect(res.status).toBe(200);
     expect(res.body.draftId).toMatch(/^draft_/);
+    expect(res.body.correctedText).toBe('螺丝放在工具盒');
+    expect(res.body.locationMatchStatus).toBe('unclear');
     expect(res.body.items[0].displayName).toBe('M3 screws');
+  });
+
+  it('passes active locations to AI analysis', async () => {
+    const room = db.createLocation({ name: '客厅' });
+    db.createLocation({ name: '左侧抽屉', parentId: room.id, aliases: ['客厅抽屉'] });
+
+    const res = await authed(request(app).post('/api/analyze')).send({ text: '我把可乐放在客厅臭屉' });
+
+    expect(res.status).toBe(200);
+    expect(ai.analyze).toHaveBeenCalledWith(expect.objectContaining({
+      text: '我把可乐放在客厅臭屉',
+      locations: expect.arrayContaining([
+        expect.objectContaining({ path: '客厅 / 左侧抽屉', aliases: ['客厅抽屉'] })
+      ])
+    }));
   });
 
   it('confirms a draft into item records', async () => {
@@ -142,6 +171,120 @@ describe('API routes', () => {
     expect(res.status).toBe(200);
     expect(db.listItems({})[0].displayName).toBe('备用钥匙');
     expect(db.listItems({})[0].useContext).toBe('开门备用');
+  });
+
+  it('manages location records through the API', async () => {
+    const room = await authed(request(app).post('/api/locations')).send({ name: '客厅' });
+    const drawer = await authed(request(app).post('/api/locations')).send({
+      name: '左侧抽屉',
+      parentId: room.body.id,
+      aliases: ['左抽']
+    });
+    const patched = await authed(request(app).patch(`/api/locations/${drawer.body.id}`)).send({
+      aliases: ['左抽', '客厅抽屉']
+    });
+    const list = await authed(request(app).get('/api/locations'));
+
+    expect(room.status).toBe(200);
+    expect(drawer.body.path).toBe('客厅 / 左侧抽屉');
+    expect(patched.body.aliases).toEqual(['左抽', '客厅抽屉']);
+    expect(list.body.locations.map((location) => location.path)).toContain('客厅 / 左侧抽屉');
+
+    const deleted = await authed(request(app).delete(`/api/locations/${drawer.body.id}`));
+    const activeList = await authed(request(app).get('/api/locations'));
+
+    expect(deleted.status).toBe(200);
+    expect(activeList.body.locations.map((location) => location.id)).not.toContain(drawer.body.id);
+  });
+
+  it('confirms a matched draft with structured location metadata', async () => {
+    const room = db.createLocation({ name: '客厅' });
+    const drawer = db.createLocation({ name: '左侧抽屉', parentId: room.id });
+    const draft = db.createDraft({
+      rawText: '我把可乐放在客厅臭屉',
+      analysis: {
+        correctedText: '我把可乐放在客厅抽屉',
+        locationMatchStatus: 'matched',
+        locationId: drawer.id,
+        locationCandidates: [],
+        items: [{ displayName: '可乐', location: drawer.path, confidence: 0.9 }]
+      },
+      recommendation: {}
+    });
+
+    const res = await authed(request(app).post('/api/confirm')).send({ draftId: draft.id });
+
+    expect(res.status).toBe(200);
+    expect(db.listItems({})[0].locationId).toBe(drawer.id);
+    expect(db.listItems({})[0].location).toBe('客厅 / 左侧抽屉');
+    expect(db.listItems({})[0].correctedText).toBe('我把可乐放在客厅抽屉');
+    expect(db.listItems({})[0].locationMatchStatus).toBe('matched');
+  });
+
+  it('confirms a draft with a selected candidate location through query string', async () => {
+    const room = db.createLocation({ name: '客厅' });
+    const leftDrawer = db.createLocation({ name: '左侧抽屉', parentId: room.id });
+    const rightDrawer = db.createLocation({ name: '右侧抽屉', parentId: room.id });
+    const draft = db.createDraft({
+      rawText: '我把遥控器放在客厅抽屉',
+      analysis: {
+        correctedText: '我把遥控器放在客厅抽屉',
+        locationMatchStatus: 'needs_choice',
+        locationCandidates: [
+          { locationId: leftDrawer.id, path: leftDrawer.path, reason: '同在客厅抽屉' },
+          { locationId: rightDrawer.id, path: rightDrawer.path, reason: '同在客厅抽屉' }
+        ],
+        items: [{ displayName: '遥控器', location: '客厅抽屉', confidence: 0.7 }]
+      },
+      recommendation: {}
+    });
+
+    const res = await authed(request(app).get(`/api/confirm-text?draftId=${draft.id}&selectedLocationId=${rightDrawer.id}`));
+
+    expect(res.status).toBe(200);
+    expect(res.text).toContain('位置：客厅 / 右侧抽屉');
+    expect(db.listItems({})[0].locationId).toBe(rightDrawer.id);
+  });
+
+  it('confirms a selected candidate when shortcut sends JSON as text/plain', async () => {
+    const room = db.createLocation({ name: '书房' });
+    const drawer = db.createLocation({ name: '桌下抽屉', parentId: room.id });
+    const draft = db.createDraft({
+      rawText: '我把读卡器放在书房抽屉',
+      analysis: {
+        correctedText: '我把读卡器放在书房抽屉',
+        locationMatchStatus: 'needs_choice',
+        locationCandidates: [{ locationId: drawer.id, path: drawer.path, reason: '书房抽屉' }],
+        items: [{ displayName: '读卡器', location: '书房抽屉', confidence: 0.7 }]
+      },
+      recommendation: {}
+    });
+
+    const res = await authed(request(app).post('/api/confirm-text'))
+      .set('Content-Type', 'text/plain')
+      .send(JSON.stringify({ draftId: draft.id, selectedLocationId: drawer.id }));
+
+    expect(res.status).toBe(200);
+    expect(db.listItems({})[0].locationId).toBe(drawer.id);
+  });
+
+  it('confirms a draft and creates an AI suggested new location', async () => {
+    const draft = db.createDraft({
+      rawText: '我把胶带放在书房白色收纳盒',
+      analysis: {
+        correctedText: '我把胶带放在书房白色收纳盒',
+        locationMatchStatus: 'suggested_new',
+        suggestedLocationPath: '书房 / 白色收纳盒',
+        items: [{ displayName: '胶带', location: '书房白色收纳盒', confidence: 0.8 }]
+      },
+      recommendation: {}
+    });
+
+    const res = await authed(request(app).get(`/api/confirm-text?draftId=${draft.id}&createSuggestedLocation=true`));
+
+    expect(res.status).toBe(200);
+    expect(db.getLocationByPath('书房 / 白色收纳盒').path).toBe('书房 / 白色收纳盒');
+    expect(db.listItems({})[0].location).toBe('书房 / 白色收纳盒');
   });
 
   it('searches stored items', async () => {

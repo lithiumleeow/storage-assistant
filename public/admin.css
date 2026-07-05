@@ -28,6 +28,11 @@ h1 {
   font-size: 24px;
 }
 
+h2 {
+  margin: 0;
+  font-size: 17px;
+}
+
 a,
 button {
   color: #0f5f8c;
@@ -55,6 +60,16 @@ textarea {
   background: white;
 }
 
+select {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #c9d2d9;
+  border-radius: 8px;
+  padding: 11px 12px;
+  font: inherit;
+  background: white;
+}
+
 .items {
   display: grid;
   gap: 10px;
@@ -73,6 +88,31 @@ textarea {
 .item h2 {
   margin: 0;
   font-size: 17px;
+}
+
+.section-title {
+  display: grid;
+  gap: 4px;
+}
+
+.location-form {
+  display: grid;
+  grid-template-columns: minmax(180px, 1.2fr) minmax(180px, 1fr) minmax(180px, 1fr) auto;
+  gap: 8px;
+}
+
+.locations {
+  display: grid;
+  gap: 8px;
+}
+
+.location-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 0;
+  border-top: 1px solid #dbe2e7;
 }
 
 .meta {
@@ -105,4 +145,15 @@ button {
   background: #ffffff;
   padding: 8px 10px;
   font: inherit;
+}
+
+@media (max-width: 760px) {
+  .location-form {
+    grid-template-columns: 1fr;
+  }
+
+  .location-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
 }

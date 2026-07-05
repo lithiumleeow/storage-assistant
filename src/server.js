@@ -9,8 +9,8 @@ import { createRoutes } from './routes.js';
 
 function createDefaultAi(config) {
   return {
-    analyze({ text, similarItems, placementCandidates }) {
-      return callJsonModel({ config, messages: buildAnalyzeMessages({ text, similarItems, placementCandidates }) });
+    analyze({ text, similarItems, placementCandidates, locations }) {
+      return callJsonModel({ config, messages: buildAnalyzeMessages({ text, similarItems, placementCandidates, locations }) });
     },
     summarizeSearch({ query, matches }) {
       return callJsonModel({ config, messages: buildSearchSummaryMessages({ query, matches }) });
