@@ -7,51 +7,130 @@
     <link rel="stylesheet" href="/admin.css">
   </head>
   <body>
-    <main class="shell">
-      <header class="topbar">
-        <h1>收纳记忆</h1>
-        <a id="exportLink" href="/api/export.csv">导出 CSV</a>
+    <main class="app-shell">
+      <header class="app-header">
+        <div class="status-row">
+          <span>09:41</span>
+          <span class="status-icons">▮▮▮ ))) 100</span>
+        </div>
+        <div class="title-row">
+          <span></span>
+          <h1>收纳记忆</h1>
+          <button class="icon-button" type="button" data-jump="#settings" aria-label="设置">
+            <span class="hex-icon"></span>
+          </button>
+        </div>
+        <label class="search-shell" for="search">
+          <span class="search-icon"></span>
+          <input id="search" type="search" placeholder="找螺丝、充电线、备用钥匙">
+          <span class="scan-icon"></span>
+        </label>
       </header>
 
-      <section class="panel">
-        <label for="token">访问令牌</label>
-        <input id="token" type="password" placeholder="SHORTCUT_TOKEN">
-      </section>
-
-      <section class="panel">
-        <label for="search">搜索</label>
-        <input id="search" type="search" placeholder="螺丝、充电线、修椅子用的东西">
-      </section>
-
-      <form id="addForm" class="panel add-form">
-        <label for="itemName">添加记忆</label>
-        <input id="itemName" name="displayName" required placeholder="物品名称，比如 M3 螺丝">
-        <input id="itemLocation" name="location" required placeholder="位置，比如 卧室衣柜右边第三个抽屉">
-        <input id="itemTags" name="tags" placeholder="标签，用逗号分隔，比如 螺丝,五金,M3">
-        <textarea id="itemDescription" name="description" rows="2" placeholder="备注，可不填"></textarea>
-        <button type="submit">保存记忆</button>
-        <p id="addStatus" class="meta"></p>
-      </form>
-
-      <section class="panel location-panel">
-        <div class="section-title">
-          <h2>常用位置</h2>
-          <span class="meta">先建房间、柜子、抽屉，AI 录入时会优先匹配。</span>
+      <section id="entry" class="voice-card">
+        <div class="wave wave-left"></div>
+        <button class="mic-button" type="button" data-jump="#manualEntry" aria-label="语音录入">
+          <span class="mic-icon"></span>
+        </button>
+        <div class="voice-copy">
+          <h2>语音录入物品位置</h2>
+          <p>用 iPhone 快捷指令说出物品和放置位置</p>
+          <span>例：把螺丝放在书房抽屉</span>
         </div>
-        <form id="locationForm" class="location-form">
+        <div class="wave wave-right"></div>
+      </section>
+
+      <section class="ai-card" aria-labelledby="aiTitle">
+        <div class="card-head">
+          <div class="head-title">
+            <span class="ai-badge">AI</span>
+            <h2 id="aiTitle">AI 智能识别与修正</h2>
+          </div>
+          <button class="soft-button" type="button" data-jump="#items">查看记录</button>
+        </div>
+        <div id="reviewPreview" class="review-box"></div>
+        <div class="review-actions">
+          <button class="secondary-button" type="button" data-jump="#locationsPanel">调整位置</button>
+          <button class="primary-button" type="button" data-jump="#manualEntry">保存记忆</button>
+        </div>
+      </section>
+
+      <section id="locationsPanel" class="location-card">
+        <div class="card-head">
+          <div class="head-title">
+            <span class="pin-icon"></span>
+            <h2>常用位置</h2>
+          </div>
+          <button class="link-button" type="button" data-jump="#locationForm">管理位置</button>
+        </div>
+        <div id="roomTabs" class="room-tabs"></div>
+      </section>
+
+      <section class="location-list-card">
+        <div class="list-title-row">
+          <div>
+            <h2 id="activeRoomTitle">全部位置</h2>
+            <span id="locationCount" class="muted">0 个位置</span>
+          </div>
+          <div class="list-tools">
+            <button class="text-button" type="button" data-jump="#locationForm">＋ 新建位置</button>
+          </div>
+        </div>
+        <div id="locations" class="locations"></div>
+      </section>
+
+      <section id="manualEntry" class="utility-card">
+        <div class="card-head">
+          <div>
+            <h2>快速补录</h2>
+            <p class="muted">语音之外，也可以在这里手动添加一条记忆。</p>
+          </div>
+        </div>
+        <form id="addForm" class="stack-form">
+          <input id="itemName" name="displayName" required placeholder="物品名称，比如 M3 螺丝">
+          <input id="itemLocation" name="location" required placeholder="位置，比如 客厅 / 电视柜 / 左侧抽屉">
+          <input id="itemTags" name="tags" placeholder="标签，用逗号分隔，比如 螺丝,五金,M3">
+          <textarea id="itemDescription" name="description" rows="2" placeholder="备注，可不填"></textarea>
+          <button class="primary-button full" type="submit">保存记忆</button>
+          <p id="addStatus" class="muted"></p>
+        </form>
+      </section>
+
+      <section class="utility-card">
+        <div class="card-head">
+          <div>
+            <h2>新建常用位置</h2>
+            <p class="muted">先建房间、柜子、抽屉，AI 录入时会优先匹配。</p>
+          </div>
+        </div>
+        <form id="locationForm" class="stack-form">
           <input id="locationName" name="name" required placeholder="位置名称，比如 客厅、电视柜、左侧抽屉">
           <select id="locationParent" name="parentId">
             <option value="">顶层位置</option>
           </select>
           <input id="locationAliases" name="aliases" placeholder="别名，用逗号分隔，比如 左抽,客厅抽屉">
-          <button type="submit">保存位置</button>
+          <button class="secondary-button full" type="submit">保存位置</button>
+          <p id="locationStatus" class="muted"></p>
         </form>
-        <p id="locationStatus" class="meta"></p>
-        <div id="locations" class="locations"></div>
       </section>
 
-      <section id="items" class="items"></section>
+      <section id="items" class="items-section"></section>
+
+      <section id="settings" class="settings-card">
+        <h2>设置</h2>
+        <label for="token">访问令牌</label>
+        <input id="token" type="password" placeholder="SHORTCUT_TOKEN">
+        <a id="exportLink" class="export-link" href="/api/export.csv">导出 CSV</a>
+      </section>
     </main>
+
+    <nav class="tabbar" aria-label="主要导航">
+      <button class="tab active" type="button" data-jump="#entry"><span class="tab-mic"></span>录入</button>
+      <button class="tab" type="button" data-jump="#items"><span class="tab-search"></span>查找</button>
+      <button class="tab" type="button" data-jump="#locationsPanel"><span class="tab-folder"></span>位置</button>
+      <button class="tab" type="button" data-jump="#settings"><span class="tab-user"></span>设置</button>
+    </nav>
+
     <script src="/admin.js"></script>
   </body>
 </html>

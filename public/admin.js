@@ -8,8 +8,14 @@ const locationForm = document.querySelector('#locationForm');
 const locationParent = document.querySelector('#locationParent');
 const locationStatus = document.querySelector('#locationStatus');
 const locationsEl = document.querySelector('#locations');
+const roomTabsEl = document.querySelector('#roomTabs');
+const activeRoomTitle = document.querySelector('#activeRoomTitle');
+const locationCount = document.querySelector('#locationCount');
+const reviewPreview = document.querySelector('#reviewPreview');
 
 let locations = [];
+let items = [];
+let activeRoom = '全部';
 
 tokenInput.value = localStorage.getItem('storage-token') || '';
 
@@ -29,42 +35,102 @@ function esc(value) {
   }[char]));
 }
 
+function firstSegment(path) {
+  return String(path || '').split('/')[0].trim() || '未分区';
+}
+
+function shortPath(path) {
+  return String(path || '').replace(/\s*\/\s*/g, ' > ');
+}
+
+function countItemsInLocation(path) {
+  if (!path) return 0;
+  return items.filter((item) => String(item.location || '').startsWith(path)).length;
+}
+
+function locationIcon(location) {
+  const path = location.path || '';
+  if (path.includes('抽屉')) return '▤';
+  if (path.includes('盒') || path.includes('箱')) return '□';
+  if (path.includes('柜')) return '▥';
+  if (path.includes('厨房')) return '⌂';
+  if (path.includes('卧室')) return '▣';
+  return '▧';
+}
+
+function filteredLocations() {
+  if (activeRoom === '全部') return locations;
+  return locations.filter((location) => firstSegment(location.path) === activeRoom);
+}
+
 async function loadItems() {
   const q = encodeURIComponent(searchInput.value.trim());
   exportLink.href = '/api/export.csv';
   const res = await fetch(`/api/items?q=${q}`, { headers: headers() });
   if (!res.ok) {
-    itemsEl.innerHTML = '<p class="meta">无法加载记录，请检查访问令牌。</p>';
+    itemsEl.innerHTML = '<p class="empty-state">无法加载记录，请检查访问令牌。</p>';
+    renderReviewPreview();
     return;
   }
   const data = await res.json();
-  itemsEl.innerHTML = data.items.map((item) => `
-    <article class="item">
-      <h2>${esc(item.displayName)}</h2>
-      <div class="meta">${esc(item.category)} · ${esc(item.zone || '未标记区域')}</div>
-      <div><strong>位置：</strong>${esc(item.location || '未记录')}</div>
-      ${item.correctedText && item.correctedText !== item.rawText ? `<div><strong>语音修正：</strong>${esc(item.correctedText)}</div>` : ''}
-      ${item.locationMatchStatus ? `<div class="meta">位置匹配：${esc(item.locationMatchStatus)}</div>` : ''}
-      <div><strong>描述：</strong>${esc(item.description || item.rawText)}</div>
-      <div class="tags">${(item.tags || []).map((tag) => `<span class="tag">${esc(tag)}</span>`).join('')}</div>
-      <div class="actions">
-        <button data-edit="${esc(item.id)}">修改位置</button>
-        <button data-delete="${esc(item.id)}">删除</button>
-      </div>
-    </article>
-  `).join('') || '<p class="meta">还没有记录。</p>';
+  items = data.items || [];
+  renderItems();
+  renderReviewPreview();
+  renderLocations();
 }
 
 async function loadLocations() {
   const res = await fetch('/api/locations', { headers: headers() });
   if (!res.ok) {
-    locationsEl.innerHTML = '<p class="meta">无法加载常用位置，请检查访问令牌。</p>';
+    locationsEl.innerHTML = '<p class="empty-state">无法加载常用位置，请检查访问令牌。</p>';
     return;
   }
   const data = await res.json();
   locations = data.locations || [];
   renderLocationOptions();
+  renderRoomTabs();
   renderLocations();
+}
+
+function renderReviewPreview() {
+  const latest = items[0];
+  if (!latest) {
+    reviewPreview.innerHTML = `
+      <div class="review-quote"><span class="quote-mark">“</span><span>修正后：<strong>把可乐放在客厅抽屉</strong></span></div>
+      <div class="review-line"><span class="mini-icon">□</span><span>物品：可乐</span></div>
+      <div class="review-line"><span class="mini-icon">⌖</span><span>位置：客厅 &gt; 电视柜 &gt; 左侧抽屉</span></div>
+    `;
+    return;
+  }
+  const corrected = latest.correctedText || latest.rawText || latest.displayName;
+  reviewPreview.innerHTML = `
+    <div class="review-quote"><span class="quote-mark">“</span><span>修正后：<strong>${esc(corrected)}</strong></span></div>
+    <div class="review-line"><span class="mini-icon">□</span><span>物品：${esc(latest.displayName)}</span></div>
+    <div class="review-line"><span class="mini-icon">⌖</span><span>位置：${esc(shortPath(latest.location || '未记录'))}</span></div>
+  `;
+}
+
+function renderItems() {
+  const content = items.map((item) => `
+    <article class="item">
+      <div class="item-head">
+        <div>
+          <h2>${esc(item.displayName)}</h2>
+          <p class="muted">${esc(item.category)} · ${esc(item.zone || '未标记区域')}</p>
+        </div>
+        <span class="count-pill">${Math.round(Number(item.confidence || 0) * 10) || 1}</span>
+      </div>
+      <div class="item-location">${esc(shortPath(item.location || '未记录'))}</div>
+      ${item.correctedText && item.correctedText !== item.rawText ? `<p class="muted">语音修正：${esc(item.correctedText)}</p>` : ''}
+      <p class="muted">${esc(item.description || item.rawText || '暂无备注')}</p>
+      <div class="tags">${(item.tags || []).map((tag) => `<span class="tag">${esc(tag)}</span>`).join('')}</div>
+      <div class="item-actions">
+        <button class="small-button" data-edit="${esc(item.id)}">修改位置</button>
+        <button class="small-button danger-button" data-delete="${esc(item.id)}">删除</button>
+      </div>
+    </article>
+  `).join('');
+  itemsEl.innerHTML = `<h2 class="section-label">最近记忆</h2>${content || '<p class="empty-state">还没有记录。</p>'}`;
 }
 
 function renderLocationOptions() {
@@ -74,16 +140,42 @@ function renderLocationOptions() {
   ].join('');
 }
 
+function renderRoomTabs() {
+  const rooms = ['全部', ...new Set(locations.map((location) => firstSegment(location.path)))];
+  if (!rooms.includes(activeRoom)) activeRoom = '全部';
+  roomTabsEl.innerHTML = [
+    ...rooms.map((room) => `<button class="room-tab ${room === activeRoom ? 'active' : ''}" type="button" data-room="${esc(room)}">${esc(room)}</button>`),
+    '<button class="room-tab" type="button" data-jump="#locationForm">＋ 添加</button>'
+  ].join('');
+}
+
 function renderLocations() {
-  locationsEl.innerHTML = locations.map((location) => `
-    <div class="location-row">
-      <div>
-        <strong>${esc(location.path)}</strong>
-        ${(location.aliases || []).length ? `<div class="meta">别名：${location.aliases.map(esc).join('，')}</div>` : ''}
+  const rows = filteredLocations();
+  activeRoomTitle.textContent = activeRoom === '全部' ? '全部位置' : activeRoom;
+  locationCount.textContent = `${rows.length} 个位置`;
+  locationsEl.innerHTML = rows.map((location, index) => {
+    const aliases = (location.aliases || []).join('、');
+    return `
+      <div class="location-row ${index === 1 ? 'featured' : ''}">
+        <div class="location-main">
+          <span class="location-emoji">${esc(locationIcon(location))}</span>
+          <div class="location-text">
+            <div class="location-path">${esc(shortPath(location.path))}</div>
+            <div class="location-alias">${aliases ? `别名：${esc(aliases)}` : '别名：未设置'}</div>
+          </div>
+        </div>
+        <div class="location-meta">
+          <span class="count-pill">${countItemsInLocation(location.path)}</span>
+          <button class="archive-button" data-archive-location="${esc(location.id)}" aria-label="归档 ${esc(location.path)}">⋮</button>
+        </div>
       </div>
-      <button data-archive-location="${esc(location.id)}">归档</button>
-    </div>
-  `).join('') || '<p class="meta">还没有常用位置。</p>';
+    `;
+  }).join('') || '<p class="empty-state">还没有常用位置。</p>';
+}
+
+function jumpTo(selector) {
+  const target = document.querySelector(selector);
+  if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 itemsEl.addEventListener('click', async (event) => {
@@ -112,10 +204,31 @@ locationsEl.addEventListener('click', async (event) => {
   loadLocations();
 });
 
+roomTabsEl.addEventListener('click', (event) => {
+  const room = event.target.dataset.room;
+  const jump = event.target.dataset.jump;
+  if (room) {
+    activeRoom = room;
+    renderRoomTabs();
+    renderLocations();
+  }
+  if (jump) jumpTo(jump);
+});
+
+document.addEventListener('click', (event) => {
+  const jump = event.target.closest('[data-jump]')?.dataset.jump;
+  if (!jump) return;
+  document.querySelectorAll('.tab').forEach((tab) => {
+    tab.classList.toggle('active', tab.dataset.jump === jump);
+  });
+  jumpTo(jump);
+});
+
 tokenInput.addEventListener('change', () => {
   loadItems();
   loadLocations();
 });
+
 searchInput.addEventListener('input', () => {
   clearTimeout(window.searchTimer);
   window.searchTimer = setTimeout(loadItems, 200);
@@ -174,5 +287,6 @@ locationForm.addEventListener('submit', async (event) => {
   loadLocations();
 });
 
+renderReviewPreview();
 loadItems();
 loadLocations();
